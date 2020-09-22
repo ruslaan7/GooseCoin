@@ -1,0 +1,2 @@
+# GooseCoin
+Opa
