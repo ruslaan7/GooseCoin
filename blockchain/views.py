@@ -82,6 +82,9 @@ class Blockchain:
                 return False
             previous_proof = previous_block['proof_of_work']
             proof_of_work = block['proof_of_work']
+
+
+
             guess = f'{previous_proof}{proof_of_work}'.encode()
             guess_hash = hashlib.sha256(guess).hexdigest()
             if guess_hash[:4] != '0000':
@@ -98,15 +101,7 @@ class Blockchain:
         :param previous_proof:
         :return: proof_of_work
         """
-        proof_of_work = 1
-        check_proof = False
-        while check_proof is False:
-            guess = f'{previous_proof}{proof_of_work}'.encode()
-            guess_hash = hashlib.sha256(guess).hexdigest()
-            if guess_hash[:4] == '0000':
-                check_proof = True
-            else:
-                proof_of_work += 1
+        proof_of_work = 0
         return proof_of_work
 
 
@@ -191,9 +186,9 @@ def connect_new_node(request):
         for node in nodes:
             blockchain.add_new_node(node)
         responses = {
-            'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
+            'message': 'All the nodes are now connected. Blockchain now contains the following nodes:',
             'total_nodes': list(blockchain.network_nodes)}
     return JsonResponse(responses)
 
-def mining():
+def mining(request):
     pass
