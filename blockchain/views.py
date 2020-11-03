@@ -177,13 +177,23 @@ def add_new_transaction(request):
 def sync_nodes(request):
     if request.method == 'GET':
         is_chain_synced = blockchain.sync_nodes_by_chain()
-        responses = {'message': 'Chain synced','new_chain': blockchain.chain} if is_chain_synced else  response = {'message': 'Your chain is actual',
+        responses = {'message': 'Chain synced','new_chain': blockchain.chain} if is_chain_synced else {'message': 'Your chain is actual',
                         'actual_chain': blockchain.chain}
     return JsonResponse(responses)
 
 
 def connect_new_node(request):
-    pass
+    if request.method == 'POST':
+        received_json = json.loads(request.body)
+        nodes = received_json.get('nodes')
+        if nodes is None:
+            return "No node", HttpResponse(status=400)
+        for node in nodes:
+            blockchain.add_new_node(node)
+        responses = {
+            'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
+            'total_nodes': list(blockchain.network_nodes)}
+    return JsonResponse(responses)
 
 def mining():
     pass
