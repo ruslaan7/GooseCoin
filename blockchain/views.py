@@ -149,16 +149,16 @@ def get_full_chain(request):
     :return: full chain
     """
     if request.method == 'GET':
-        response = {'chain': blockchain.chain,
+        responses = {'chain': blockchain.chain,
                     'length': len(blockchain.chain)}
-    return JsonResponse(response)
+    return JsonResponse(responses)
 
 def chain_is_valid(request):
     if request.method == 'GET':
         chain_is_valid = blockchain.chain_validation_check(blockchain.chain)
-        response = {'message': 'Blockchain is valid'} if chain_is_valid else {'message': 'Blockchain is not valid'}
+        responses = {'message': 'Blockchain is valid'} if chain_is_valid else {'message': 'Blockchain is not valid'}
 
-    return JsonResponse(response)
+    return JsonResponse(responses)
 
 
 
@@ -171,15 +171,15 @@ def add_new_transaction(request):
         index = blockchain.create_new_transaction(values['sender'],
                                                   values['receiver'],
                                                   values['amount'])
-        response = {'message': f'Transaction will be added to Block {index}'}
-    return JsonResponse(response)
+        responses = {'message': f'Transaction will be added to Block {index}'}
+    return JsonResponse(responses)
 
 def sync_nodes(request):
     if request.method == 'GET':
         is_chain_synced = blockchain.sync_nodes_by_chain()
-        response = {'message': 'Chain synced','new_chain': blockchain.chain} if is_chain_synced else  response = {'message': 'Your chain is actual',
+        responses = {'message': 'Chain synced','new_chain': blockchain.chain} if is_chain_synced else  response = {'message': 'Your chain is actual',
                         'actual_chain': blockchain.chain}
-    return JsonResponse(response)
+    return JsonResponse(responses)
 
 
 def connect_new_node(request):
