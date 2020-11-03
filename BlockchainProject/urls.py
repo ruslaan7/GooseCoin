@@ -24,7 +24,7 @@ urlpatterns = [
     url('^chain_is_valid$', views.chain_is_valid, name="chain_is_valid"),
     url('^add_new_transaction$', views.add_new_transaction, name="add_new_transaction"),
     url('^connect_new_node$', views.connect_new_node, name="connect_new_node"),
-    url('^sync_chain$', views.sync_nodes, name="cync_chain"),
+    url('^sync_chain$', views.sync_nodes, name="sync_chain"),
 ]
 
 
