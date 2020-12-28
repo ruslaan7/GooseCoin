@@ -1,24 +1,5 @@
-'''
-title           : blockchain.py
-description     : A blockchain implemenation
-author          : Adil Moujahid
-date_created    : 20180212
-date_modified   : 20180309
-version         : 0.5
-usage           : python blockchain.py
-                  python blockchain.py -p 5000
-                  python blockchain.py --port 5000
-python_version  : 3.6.1
-Comments        : The blockchain implementation is mostly based on [1]. 
-                  I made a few modifications to the original code in order to add RSA encryption to the transactions 
-                  based on [2], changed the proof of work algorithm, and added some Flask routes to interact with the 
-                  blockchain from the dashboards
-References      : [1] https://github.com/dvf/blockchain/blob/master/blockchain.py
-                  [2] https://github.com/julienr/ipynb_playground/blob/master/bitcoin/dumbcoin/dumbcoin.ipynb
-'''
 
 from collections import OrderedDict
-
 import binascii
 
 import Crypto
@@ -46,30 +27,25 @@ MINING_DIFFICULTY = 2
 
 class Blockchain:
 
-    def __init__(self):
-        
-        self.transactions = []
-        self.chain = []
-        self.nodes = set()
-        #Generate random number to be used as node_id
-        self.node_id = str(uuid4()).replace('-', '')
-        #Create genesis block
-        self.create_block(0, '00')
+    def __init__(self, transactions = [], chain = [], nodes = set())
+        self.chain = chain#cама цепочка блоков
+        self.transactions = transactions#список транзакций для следующего блока
+        self.nodes = nodes #список URL адресов. Используем, чтобы синхронизировать цепочку 
+        self.node_id = str(uuid4()).replace('-', '') #генерируем рандомный UUID(уникальный идентификатор) в формате xxxxxxxx.xxxx.Mxxx.Nxxx.xxxxxxxxxxxx
+        #теоритически для безопастности можно прописать собственную генерацию или использовать хэширование
+        self.create_block(0, '00')#создаем блок генезиса:)
 
 
-    def register_node(self, node_url):
-        """
-        Add a new node to the list of nodes
-        """
-        #Checking node_url has valid format
+    def register_node(self, node_url):#Регистрируем новый URL. Пришел? знакомся с остальными!
         parsed_url = urlparse(node_url)
         if parsed_url.netloc:
+            #netloc - возвращает домен первого уровня
             self.nodes.add(parsed_url.netloc)
         elif parsed_url.path:
-            # Accepts an URL without scheme like '192.168.0.5:5000'.
+            #path - возравщает url в виде ip:port
             self.nodes.add(parsed_url.path)
         else:
-            raise ValueError('Invalid URL')
+            raise ValueError('invalid URL when trying to register....')#какой-то мутный ты 
 
 
     def verify_transaction_signature(self, sender_address, signature, transaction):
@@ -218,57 +194,56 @@ class Blockchain:
 
         return False
 
-# Instantiate the Node
+      
+      
+#Запускаем FLASK и иницируем нашу цепочку, считай как ракету в космос отправить------------------------------------------
 app = Flask(__name__)
 CORS(app)
-
-# Instantiate the Blockchain
 blockchain = Blockchain()
 
+
+#определяем маршруты на index и сonfigure
 @app.route('/')
 def index():
     return render_template('./index.html')
-
 @app.route('/configure')
 def configure():
     return render_template('./configure.html')
 
 
-
+#блок управления транзациями и майнингом------------------------------------------------------------------------------------
 @app.route('/transactions/new', methods=['POST'])
-def new_transaction():
+def new_transaction(): #добавляем новую транзакцию, которая будет добавлена к блоку, если подпись действительна
     values = request.form
-
-    # Check that the required fields are in the POST'ed data
-    required = ['sender_address', 'recipient_address', 'amount', 'signature']
+    required = ['sender_address', 'recipient_address', 'amount', 'signature']#получаем адрес отправителя, адрес получателя, сумму и подпись
     if not all(k in values for k in required):
-        return 'Missing values', 400
-    # Create a new Transaction
-    transaction_result = blockchain.submit_transaction(values['sender_address'], values['recipient_address'], values['amount'], values['signature'])
-
+        return 'Missing values', 400 #чета забыл блин...
+      
+    transaction_result = blockchain.submit_transaction(values['sender_address'], values['recipient_address'], values['amount'], values['signature'])   
+    
+    #jsonfy - конвертит в json
     if transaction_result == False:
-        response = {'message': 'Invalid Transaction!'}
+        response = {'message': 'Invalid Transaction! signature is incorrect :('}
         return jsonify(response), 406
     else:
         response = {'message': 'Transaction will be added to Block '+ str(transaction_result)}
         return jsonify(response), 201
-
+     
 @app.route('/transactions/get', methods=['GET'])
-def get_transactions():
-    #Get transactions from transactions pool
+def get_transactions():#получаем все транзакции которые будут добавлены в блок
     transactions = blockchain.transactions
-
     response = {'transactions': transactions}
     return jsonify(response), 200
 
 @app.route('/chain', methods=['GET'])
-def full_chain():
+def full_chain():#возвращаем всю цепочку, цепочка должна быть в открытом доступе, наверное будет нужно
     response = {
         'chain': blockchain.chain,
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
 
+  
 @app.route('/mine', methods=['GET'])
 def mine():
     # We run the proof of work algorithm to get the next proof...
@@ -292,18 +267,15 @@ def mine():
     return jsonify(response), 200
 
 
-
+#блок управления узлами---------------------------------------------------------------------------------------
 @app.route('/nodes/register', methods=['POST'])
-def register_nodes():
+def register_nodes(): #пушим список URL адресов в список узлов
     values = request.form
     nodes = values.get('nodes').replace(" ", "").split(',')
-
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
-
     for node in nodes:
         blockchain.register_node(node)
-
     response = {
         'message': 'New nodes have been added',
         'total_nodes': [node for node in blockchain.nodes],
@@ -312,10 +284,13 @@ def register_nodes():
 
 
 @app.route('/nodes/resolve', methods=['GET'])
-def consensus():
+def consensus():#здесь мы будем пытаться решить конфликт, как только Наташа допишет разрешение конфликтов
+    """
+    по сути, мы ждем следующий блок, и тот кто находит следующий блок решает чья цепочка будет действительна и кому достанется коммиссия
+    udpate: заменяем локальную цепочку самой длинной доступной в сети.Не уверен, что самое лучшее решение
+    """
     replaced = blockchain.resolve_conflicts()
-
-    if replaced:
+    if replaced: 
         response = {
             'message': 'Our chain was replaced',
             'new_chain': blockchain.chain
@@ -329,21 +304,19 @@ def consensus():
 
 
 @app.route('/nodes/get', methods=['GET'])
-def get_nodes():
+def get_nodes(): #получаем список узлов, не знаю для чего нужно, но сказали нужно 
     nodes = list(blockchain.nodes)
     response = {'nodes': nodes}
     return jsonify(response), 200
 
 
-
+#ДЕФОЛТНЫЙ ПОРТ 5000
 if __name__ == '__main__':
     from argparse import ArgumentParser
-
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    parser.add_argument('-p', '--port', default = 5000, type = int, help='port to listen on') 
     args = parser.parse_args()
     port = args.port
-
     app.run(host='127.0.0.1', port=port)
 
 
