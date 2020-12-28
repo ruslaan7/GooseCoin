@@ -36,124 +36,80 @@
       </div>
     </nav>
 
-
-    <!-- Add nodes -->
     <div class="container">
-      <div class="row">
-        <div class="col-lg-12">
-
-          <div class="card-body">
-            <h4 class="card-title">Add Blockchain nodes</h4>
-            <p class="card-text">Enter a list of Blockchain node URLs separated by comma and click on "Add" button to add them to the list of nodes</p>
-          </div>
-
-        </div>
-      </div>
     </div>
-
+    <hr>
     <div class="container alert alert-secondary">
       <form id="node_form">
         <div class="row">
-          <label class="col-sm-2">Node URLs:</label>
-          <div class="col-sm-10">
-            <input type="text" name="nodes" id="nodes" rows="2" class="form-control">
+
+        </div>
+        <div class="input-group mb-3">
+          <input type="text" name="nodes" id="nodes" rows="2" class="form-control" placeholder="URL's" aria-label="Recipient's username" aria-describedby="button-addon2">
+          <div class="input-group-append">
+            <input class="btn btn-outline-secondary" type="button" id="add_node_button" value="Добавить узел" id="button-addon2">
           </div>
         </div>
-
         <br>
-
-        <div class="row">
-          <div class="col-lg-12 text-center">
-            <input type="button" id="add_node_button" class="btn btn-primary btn-lg" value="Add Node">
-          </div>
-        </div>
       </form>
     </div>
-
     <hr>
 
-    <!-- List of nodes -->
     <div class="container">
       <div class="row">
-
         <div class="col-lg-12">
           <div class="card-body">
-            <h4 class="card-title">This node can retrieve Blockchain data from the following nodes:</h4>
+            <h4 class="card-title">Узлы сети:</h4>
           </div>
         </div>
-
         <div class="col-lg-12" id="list_nodes">
-
         </div>
-
       </div>
     </div>
 
-    <!-- Bootstrap core JavaScript -->
+
     <script src="/static/vendor/jquery/jquery.min.js"></script>
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="/static/vendor/DataTables/js/datatables.min.js"></script>
     <script src="/static/vendor/DataTables/js/ellipsis.js"></script>
 
-
     <script>
       $(function(){
-
           $("#add_node_button").click(function () {
             //console.log($('#confirmation_transaction_form').serialize());
-
             $.ajax({
               url: "/nodes/register",
               type: "POST",
               dataType : 'json',
               data: $('#node_form').serialize(),
               success: function(response){
-
                 console.log(response);
                 document.getElementById("nodes").value = "";  
                 window.location.reload();
-
               },
               error: function(error){
                 console.log(error);
               }
             });
-
           });
-
 
         $.ajax({
           url: "/nodes/get",
           type: 'GET',
           success: function(response){
-
             console.log(response['nodes']);
             var node = "";
-            
             for (i = 0; i < response['nodes'].length; i++) { 
               //node = "<li>" + response['nodes'][i] + "</li>";
               node = "<li> <a href=http://" + response['nodes'][i] + ">" + response['nodes'][i] +"</a></li>";
               document.getElementById("list_nodes").innerHTML += node;
-
             };
-          
           },
           error: function(error){
             console.log(error);
           }
         });
-
-
       })
-
-
-
-
-
     </script>
-
-
-
   </body>
-
 </html>
