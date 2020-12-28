@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Blockchain Frontend</title>
+    <title>Goose Coin</title>
 
     <!-- Bootstrap core CSS -->
     <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -21,22 +21,26 @@
   <body>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
       <div class="container">
-        <a class="navbar-brand" href="#">Blockchain Frontend</a>
+        <a class="navbar-brand" href="/">Goose Coin</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarResponsive">
           <ul class="navbar-nav ml-auto">
-            <li class="nav-item active">
-              <a class="nav-link" href="/">Mine
-                <span class="sr-only">(current)</span>
+            <div class="btn-group" role="group" aria-label="Basic example">
+               <a class="nav-link" href="/">
+                 <button type="button"  href="/" class="btn btn-secondary">Майнинг
+                   <span class="sr-only">(current)</span>
+                 </button>
+               </a>
+              <a class="nav-link" href="/configure">
+                 <button type="button" href="/configure" class="btn btn-secondary">Наcтройки
+
+                 </button>
               </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/configure">Configure</a>
-            </li>
+          </div>
           </ul>
         </div>
       </div>
