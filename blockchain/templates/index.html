@@ -124,9 +124,9 @@
                 $('#unmined_transactions_table').dataTable({
                     data: transactions,
                     columns: [{title: "#"},
-                        {title: "Recipient Address"},
-                        {title: "Sender Address"},
-                        {title: "Value"}],
+                        {title: "Адрес получателя"},
+                        {title: "Адрес отправителя"},
+                        {title: "Значение"}],
                     columnDefs: [{targets: [1, 2, 3], render: $.fn.dataTable.render.ellipsis(25)}]
                 });
 
@@ -178,11 +178,11 @@
                 $('#transactions_table').dataTable({
                     data: transactions,
                     columns: [{title: "#"},
-                        {title: "Recipient Address"},
-                        {title: "Sender Address"},
-                        {title: "Value"},
-                        {title: "Timestamp"},
-                        {title: "Block"}],
+                        {title: "Адрес получателя"},
+                        {title: "Адрес отправителя"},
+                        {title: "Значение"},
+                        {title: "Отметка времени"},
+                        {title: "Блок"}],
                     columnDefs: [{targets: [1, 2, 3, 4, 5], render: $.fn.dataTable.render.ellipsis(25)}]
                 });
 
