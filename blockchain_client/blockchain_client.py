@@ -1,63 +1,37 @@
-'''
-title           : blockchain_client.py
-description     : A blockchain client implemenation, with the following features
-                  - Wallets generation using Public/Private key encryption (based on RSA algorithm)
-                  - Generation of transactions with RSA encryption      
-author          : Adil Moujahid
-date_created    : 20180212
-date_modified   : 20180309
-version         : 0.3
-usage           : python blockchain_client.py
-                  python blockchain_client.py -p 8080
-                  python blockchain_client.py --port 8080
-python_version  : 3.6.1
-Comments        : Wallet generation and transaction signature is based on [1]
-References      : [1] https://github.com/julienr/ipynb_playground/blob/master/bitcoin/dumbcoin/dumbcoin.ipynb
-'''
-
 from collections import OrderedDict
-
 import binascii
-
 import Crypto
 import Crypto.Random
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
-
 import requests
 from flask import Flask, jsonify, request, render_template
 
 
-class Transaction:
-
+class Transaction:#транзация состоит из адреса отправителя, получателя, приватного ключа отправителя и значения Гуськоинов	
+	"""
+	по хорошему не использовать открытый ключ отправителя как его адрес(!)
+	"""	
     def __init__(self, sender_address, sender_private_key, recipient_address, value):
         self.sender_address = sender_address
         self.sender_private_key = sender_private_key
         self.recipient_address = recipient_address
         self.value = value
 
-    def __getattr__(self, attr):
-        return self.data[attr]
-
-    def to_dict(self):
+    def to_dict(self):#пофиксил слоаварь для порядка транзакции юзается OrderedDict, а так все тоже самое
         return OrderedDict({'sender_address': self.sender_address,
                             'recipient_address': self.recipient_address,
                             'value': self.value})
 
-    def sign_transaction(self):
-        """
-        Sign transaction with private key
-        """
-        private_key = RSA.importKey(binascii.unhexlify(self.sender_private_key))
-        signer = PKCS1_v1_5.new(private_key)
-        h = SHA.new(str(self.to_dict()).encode('utf8'))
-        return binascii.hexlify(signer.sign(h)).decode('ascii')
+    def sign_transaction(self):#подписываем транзакцию
+        private_key = RSA.importKey(binascii.unhexlify(self.sender_private_key))#перегоняем строку hex2bin, импортим наш ключ hex2bin 
+        signer = PKCS1_v1_5.new(private_key)#PKS1 забейте, это просто стандрат для RSA, идет вместе с Crypto, поэтому просто юзаю его
+        h = SHA.new(str(self.to_dict()).encode('utf8'))#SHA-1, 256 выдает ошибку, ПОФИКСИТЬ!
+        return binascii.hexlify(signer.sign(h)).decode('ascii') #пушим обратно подпись уже в hex
 
-
-
+#Часть Тимура----------------------------------------
 app = Flask(__name__)
-
 @app.route('/')
 def index():
 	return render_template('./index.html')
@@ -70,33 +44,37 @@ def make_transaction():
 def view_transaction():
     return render_template('./view_transactions.html')
 
+#-------------------------------------------------
+"""
+new_wallet - генерация пары ключей, все работает, ключи возращает в hex
+generate_transaction - вернем сделку и подпись
+по хорошему заменить RSA на ECDSA, но отсавлю так, потому что работает
+"""
 @app.route('/wallet/new', methods=['GET'])
 def new_wallet():
-	random_gen = Crypto.Random.new().read
+	random_gen = Crypto.Random.new().read#по идее
 	private_key = RSA.generate(1024, random_gen)
 	public_key = private_key.publickey()
 	response = {
 		'private_key': binascii.hexlify(private_key.exportKey(format='DER')).decode('ascii'),
 		'public_key': binascii.hexlify(public_key.exportKey(format='DER')).decode('ascii')
 	}
-
 	return jsonify(response), 200
+
 
 @app.route('/generate/transaction', methods=['POST'])
 def generate_transaction():
-	
+	#пофиксил подпись, все работает
 	sender_address = request.form['sender_address']
 	sender_private_key = request.form['sender_private_key']
 	recipient_address = request.form['recipient_address']
 	value = request.form['amount']
-
 	transaction = Transaction(sender_address, sender_private_key, recipient_address, value)
-
 	response = {'transaction': transaction.to_dict(), 'signature': transaction.sign_transaction()}
-
 	return jsonify(response), 200
 
 
+#ПОРТ ДЕФОЛТНЫЙ 8080
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
