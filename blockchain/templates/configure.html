@@ -1,115 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
+
     <title>Goose Coin</title>
-    <!-- Bootstrap core CSS -->
-    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/vendor/DataTables/css/datatables.min.css" rel="stylesheet">
-    <link href="/static/css/custom.css" rel="stylesheet">
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-      <div class="container">
+
+    <link href="../static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/vendor/DataTables/css/datatables.min.css" rel="stylesheet">
+    <link href="../static/css/custom.css" rel="stylesheet">
+</head>
+
+<body style="background: linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.6) 100%), url(../templates/gussi.jpg) fixed">
+<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <div class="container">
         <a class="navbar-brand" href="/">Goose Coin</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+                aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarResponsive">
-          <ul class="navbar-nav ml-auto">
-            <div class="btn-group" role="group" aria-label="Basic example">
-               <a class="nav-link" href="/">
-                 <button type="button"  href="/" class="btn btn-secondary">Майнинг
-                 </button>
-               </a>
-              <a class="nav-link" href="/configure">
-                 <button type="button" href="/configure" class="btn btn-secondary">Наcтройки
-                   <span class="sr-only">(current)</span>
-                 </button>
-              </a>
-          </div>
-          </ul>
+            <ul class="navbar-nav ml-auto">
+                <div class="btn-group" role="group" aria-label="Basic example">
+                    <a class="nav-link" href="/">
+                        <button type="button" href="/" class="btn btn-secondary">Майнинг
+                        </button>
+                    </a>
+                    <a class="nav-link" href="/configure">
+                        <button type="button" href="/configure" class="btn btn-secondary">Наcтройки
+                            <span class="sr-only">(current)</span>
+                        </button>
+                    </a>
+                </div>
+            </ul>
         </div>
-      </div>
-    </nav>
-
-    <div class="container">
     </div>
-    <hr>
-    <div class="container alert alert-secondary">
-      <form id="node_form">
+</nav>
+
+<div class="container">
+</div>
+<hr>
+<div class="container alert alert-secondary">
+    <form id="node_form">
         <div class="row">
 
         </div>
         <div class="input-group mb-3">
-          <input type="text" name="nodes" id="nodes" rows="2" class="form-control" placeholder="URL's" aria-label="Recipient's username" aria-describedby="button-addon2">
-          <div class="input-group-append">
-            <input class="btn btn-outline-secondary" type="button" id="add_node_button" value="Добавить узел" id="button-addon2">
-          </div>
+            <input type="text" name="nodes" id="nodes" rows="2" class="form-control" placeholder="URL's"
+                   aria-label="Recipient's username" aria-describedby="button-addon2">
+            <div class="input-group-append">
+                <input class="btn btn-outline-secondary" type="button" id="add_node_button" value="Добавить узел"
+                       id="button-addon2">
+            </div>
         </div>
         <br>
-      </form>
-    </div>
-    <hr>
+    </form>
+</div>
+<hr>
 
-    <div class="container">
-      <div class="row">
+<div class="container">
+    <div class="row">
         <div class="col-lg-12">
-          <div class="card-body">
-            <h4 class="card-title">Узлы сети:</h4>
-          </div>
+            <div class="card-body">
+                <h4 class="card-title">Узлы сети:</h4>
+            </div>
         </div>
         <div class="col-lg-12" id="list_nodes">
         </div>
-      </div>
     </div>
+</div>
 
 
-    <script src="/static/vendor/jquery/jquery.min.js"></script>
-    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script type="text/javascript" src="/static/vendor/DataTables/js/datatables.min.js"></script>
-    <script src="/static/vendor/DataTables/js/ellipsis.js"></script>
+<script src="../static/vendor/jquery/jquery.min.js"></script>
+<script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="../static/vendor/DataTables/js/datatables.min.js"></script>
+<script src="../static/vendor/DataTables/js/ellipsis.js"></script>
 
-    <script>
-      $(function(){
-          $("#add_node_button").click(function () {
+<script>
+    $(function () {
+        $("#add_node_button").click(function () {
             //console.log($('#confirmation_transaction_form').serialize());
             $.ajax({
-              url: "/nodes/register",
-              type: "POST",
-              dataType : 'json',
-              data: $('#node_form').serialize(),
-              success: function(response){
-                console.log(response);
-                document.getElementById("nodes").value = "";  
-                window.location.reload();
-              },
-              error: function(error){
-                console.log(error);
-              }
+                url: "/nodes/register",
+                type: "POST",
+                dataType: 'json',
+                data: $('#node_form').serialize(),
+                success: function (response) {
+                    console.log(response);
+                    document.getElementById("nodes").value = "";
+                    window.location.reload();
+                },
+                error: function (error) {
+                    console.log(error);
+                }
             });
-          });
+        });
 
         $.ajax({
-          url: "/nodes/get",
-          type: 'GET',
-          success: function(response){
-            console.log(response['nodes']);
-            var node = "";
-            for (i = 0; i < response['nodes'].length; i++) { 
-              //node = "<li>" + response['nodes'][i] + "</li>";
-              node = "<li> <a href=http://" + response['nodes'][i] + ">" + response['nodes'][i] +"</a></li>";
-              document.getElementById("list_nodes").innerHTML += node;
-            };
-          },
-          error: function(error){
-            console.log(error);
-          }
+            url: "/nodes/get",
+            type: 'GET',
+            success: function (response) {
+                console.log(response['nodes']);
+                var node = "";
+                for (i = 0; i < response['nodes'].length; i++) {
+                    //node = "<li>" + response['nodes'][i] + "</li>";
+                    node = "<li> <a href=http://" + response['nodes'][i] + ">" + response['nodes'][i] + "</a></li>";
+                    document.getElementById("list_nodes").innerHTML += node;
+                }
+            },
+            error: function (error) {
+                console.log(error);
+            }
         });
-      })
-    </script>
-  </body>
+    })
+</script>
+</body>
+
 </html>
