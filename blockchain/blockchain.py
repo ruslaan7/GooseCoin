@@ -1,5 +1,5 @@
-
 from collections import OrderedDict
+
 import binascii
 
 import Crypto
@@ -18,7 +18,8 @@ import requests
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
-
+from mining import create_block, hash, proof_of_work, valid_proof, valid_chain, resolve_conflicts
+from main_blockchain import new_transaction, get_transactions
 
 MINING_SENDER = "THE BLOCKCHAIN"
 MINING_REWARD = 1
@@ -27,25 +28,30 @@ MINING_DIFFICULTY = 2
 
 class Blockchain:
 
-    def __init__(self, transactions = [], chain = [], nodes = set())
-        self.chain = chain#cама цепочка блоков
-        self.transactions = transactions#список транзакций для следующего блока
-        self.nodes = nodes #список URL адресов. Используем, чтобы синхронизировать цепочку 
-        self.node_id = str(uuid4()).replace('-', '') #генерируем рандомный UUID(уникальный идентификатор) в формате xxxxxxxx.xxxx.Mxxx.Nxxx.xxxxxxxxxxxx
-        #теоритически для безопастности можно прописать собственную генерацию или использовать хэширование
-        self.create_block(0, '00')#создаем блок генезиса:)
+    def __init__(self):
+        
+        self.transactions = []
+        self.chain = []
+        self.nodes = set()
+        #Generate random number to be used as node_id
+        self.node_id = str(uuid4()).replace('-', '')
+        #Create genesis block
+        self.create_block(0, '00')
 
 
-    def register_node(self, node_url):#Регистрируем новый URL. Пришел? знакомся с остальными!
+    def register_node(self, node_url):
+        """
+        Add a new node to the list of nodes
+        """
+        #Checking node_url has valid format
         parsed_url = urlparse(node_url)
         if parsed_url.netloc:
-            #netloc - возвращает домен первого уровня
             self.nodes.add(parsed_url.netloc)
         elif parsed_url.path:
-            #path - возравщает url в виде ip:port
+            # Accepts an URL without scheme like '192.168.0.5:5000'.
             self.nodes.add(parsed_url.path)
         else:
-            raise ValueError('invalid URL when trying to register....')#какой-то мутный ты 
+            raise ValueError('Invalid URL')
 
 
     def verify_transaction_signature(self, sender_address, signature, transaction):
@@ -81,181 +87,51 @@ class Blockchain:
                 return False
 
 
-    def create_block(self, nonce, previous_hash):
-        """
-        Add a block of transactions to the blockchain
-        """
-        block = {'block_number': len(self.chain) + 1,
-                'timestamp': time(),
-                'transactions': self.transactions,
-                'nonce': nonce,
-                'previous_hash': previous_hash}
-
-        # Reset the current list of transactions
-        self.transactions = []
-
-        self.chain.append(block)
-        return block
-
-
-    def hash(self, block):
-        """
-        Create a SHA-256 hash of a block
-        """
-        # We must make sure that the Dictionary is Ordered, or we'll have inconsistent hashes
-        block_string = json.dumps(block, sort_keys=True).encode()
-        
-        return hashlib.sha256(block_string).hexdigest()
-
-
-    def proof_of_work(self):
-        """
-        Proof of work algorithm
-        """
-        last_block = self.chain[-1]
-        last_hash = self.hash(last_block)
-
-        nonce = 0
-        while self.valid_proof(self.transactions, last_hash, nonce) is False:
-            nonce += 1
-
-        return nonce
-
-
-    def valid_proof(self, transactions, last_hash, nonce, difficulty=MINING_DIFFICULTY):
-        """
-        Check if a hash value satisfies the mining conditions. This function is used within the proof_of_work function.
-        """
-        guess = (str(transactions)+str(last_hash)+str(nonce)).encode()
-        guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:difficulty] == '0'*difficulty
-
-
-    def valid_chain(self, chain):
-        """
-        check if a bockchain is valid
-        """
-        last_block = chain[0]
-        current_index = 1
-
-        while current_index < len(chain):
-            block = chain[current_index]
-            #print(last_block)
-            #print(block)
-            #print("\n-----------\n")
-            # Check that the hash of the block is correct
-            if block['previous_hash'] != self.hash(last_block):
-                return False
-
-            # Check that the Proof of Work is correct
-            #Delete the reward transaction
-            transactions = block['transactions'][:-1]
-            # Need to make sure that the dictionary is ordered. Otherwise we'll get a different hash
-            transaction_elements = ['sender_address', 'recipient_address', 'value']
-            transactions = [OrderedDict((k, transaction[k]) for k in transaction_elements) for transaction in transactions]
-
-            if not self.valid_proof(transactions, block['previous_hash'], block['nonce'], MINING_DIFFICULTY):
-                return False
-
-            last_block = block
-            current_index += 1
-
-        return True
-
-    def resolve_conflicts(self):
-        """
-        Resolve conflicts between blockchain's nodes
-        by replacing our chain with the longest one in the network.
-        """
-        neighbours = self.nodes
-        new_chain = None
-
-        # We're only looking for chains longer than ours
-        max_length = len(self.chain)
-
-        # Grab and verify the chains from all the nodes in our network
-        for node in neighbours:
-            print('http://' + node + '/chain')
-            response = requests.get('http://' + node + '/chain')
-
-            if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
-
-                # Check if the length is longer and the chain is valid
-                if length > max_length and self.valid_chain(chain):
-                    max_length = length
-                    new_chain = chain
-
-        # Replace our chain if we discovered a new, valid chain longer than ours
-        if new_chain:
-            self.chain = new_chain
-            return True
-
-        return False
-
-      
-      
-#Запускаем FLASK и иницируем нашу цепочку, считай как ракету в космос отправить------------------------------------------
+# Instantiate the Node
 app = Flask(__name__)
 CORS(app)
+
+# Instantiate the Blockchain
 blockchain = Blockchain()
 
-
-#определяем маршруты на index и сonfigure
 @app.route('/')
 def index():
     return render_template('./index.html')
+
 @app.route('/configure')
 def configure():
     return render_template('./configure.html')
 
 
-#блок управления транзациями и майнингом------------------------------------------------------------------------------------
+
 @app.route('/transactions/new', methods=['POST'])
-def new_transaction(): #добавляем новую транзакцию, которая будет добавлена к блоку, если подпись действительна
-    values = request.form
-    required = ['sender_address', 'recipient_address', 'amount', 'signature']#получаем адрес отправителя, адрес получателя, сумму и подпись
-    if not all(k in values for k in required):
-        return 'Missing values', 400 #чета забыл блин...
-      
-    transaction_result = blockchain.submit_transaction(values['sender_address'], values['recipient_address'], values['amount'], values['signature'])   
-    
-    #jsonfy - конвертит в json
-    if transaction_result == False:
-        response = {'message': 'Invalid Transaction! signature is incorrect :('}
-        return jsonify(response), 406
-    else:
-        response = {'message': 'Transaction will be added to Block '+ str(transaction_result)}
-        return jsonify(response), 201
-     
+def new_transaction():
+  response, sig = new_transaction(blockchain)
+
+
 @app.route('/transactions/get', methods=['GET'])
-def get_transactions():#получаем все транзакции которые будут добавлены в блок
-    transactions = blockchain.transactions
-    response = {'transactions': transactions}
-    return jsonify(response), 200
+def get_transactions():
+   response, sig = get_transactions(blockchain)
 
 @app.route('/chain', methods=['GET'])
-def full_chain():#возвращаем всю цепочку, цепочка должна быть в открытом доступе, наверное будет нужно
+def full_chain():
     response = {
         'chain': blockchain.chain,
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
 
-  
 @app.route('/mine', methods=['GET'])
 def mine():
-    # We run the proof of work algorithm to get the next proof...
+    # Запускаем алгоритм proof of work чтобы получить следующее подтверждение от майнера
     last_block = blockchain.chain[-1]
-    nonce = blockchain.proof_of_work()
+    nonce = proof_of_work(blockchain.chain, blockchain.transactions)
 
-    # We must receive a reward for finding the proof.
     blockchain.submit_transaction(sender_address=MINING_SENDER, recipient_address=blockchain.node_id, value=MINING_REWARD, signature="")
 
-    # Forge the new Block by adding it to the chain
-    previous_hash = blockchain.hash(last_block)
-    block = blockchain.create_block(nonce, previous_hash)
+
+    previous_hash = hash(blockchain.last_block)
+    block = create_block(blockchain.nonce, blockchain.previous_hash)
 
     response = {
         'message': "New Block Forged",
@@ -267,15 +143,18 @@ def mine():
     return jsonify(response), 200
 
 
-#блок управления узлами---------------------------------------------------------------------------------------
+
 @app.route('/nodes/register', methods=['POST'])
-def register_nodes(): #пушим список URL адресов в список узлов
+def register_nodes():
     values = request.form
     nodes = values.get('nodes').replace(" ", "").split(',')
+
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
+
     for node in nodes:
         blockchain.register_node(node)
+
     response = {
         'message': 'New nodes have been added',
         'total_nodes': [node for node in blockchain.nodes],
@@ -284,13 +163,10 @@ def register_nodes(): #пушим список URL адресов в списо�
 
 
 @app.route('/nodes/resolve', methods=['GET'])
-def consensus():#здесь мы будем пытаться решить конфликт, как только Наташа допишет разрешение конфликтов
-    """
-    по сути, мы ждем следующий блок, и тот кто находит следующий блок решает чья цепочка будет действительна и кому достанется коммиссия
-    udpate: заменяем локальную цепочку самой длинной доступной в сети.Не уверен, что самое лучшее решение
-    """
-    replaced = blockchain.resolve_conflicts()
-    if replaced: 
+def consensus():
+    replaced = resolve_conflicts(blockchain.nodes, blockchain.chain)
+
+    if replaced:
         response = {
             'message': 'Our chain was replaced',
             'new_chain': blockchain.chain
@@ -304,19 +180,21 @@ def consensus():#здесь мы будем пытаться решить кон
 
 
 @app.route('/nodes/get', methods=['GET'])
-def get_nodes(): #получаем список узлов, не знаю для чего нужно, но сказали нужно 
+def get_nodes():
     nodes = list(blockchain.nodes)
     response = {'nodes': nodes}
     return jsonify(response), 200
 
 
-#ДЕФОЛТНЫЙ ПОРТ 5000
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
+
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default = 5000, type = int, help='port to listen on') 
+    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
+
     app.run(host='127.0.0.1', port=port)
 
 
